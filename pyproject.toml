@@ -1,0 +1,17 @@
+[project]
+name = "fastq-sapio-watcher"
+version = "0.0.0"
+requires-python = ">=3.13"
+dependencies = [
+  "sapiopylib==2025.10.7.295",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==8.4.2",
+  "coverage==7.10.7",
+]
+
+[tool.uv]
+constraint-dependencies = ["kaleido!=0.2.1.post1"]
+
