@@ -1,30 +1,30 @@
-"""Adapter to communicate with Sapio (sapiopylib).
+"""HTTP adapter to communicate with the Sapio Web Service.
 
-This module isolates Sapio usage so tests can monkeypatch the client class.
-If sapiopylib is not installed, the adapter will raise on use.
+This module provides `SapioClient`, a thin HTTP client that talks to the
+Sapio REST API to query and update SequencingFile data records. Tests
+should inject a requests-like session when they need to avoid network
+calls.
 """
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
 from uuid import UUID
-from sapiopylib.rest.User import SapioUser
-from sapiopylib.rest.DataMgmtService import DataMgmtServer
+
+import requests
+
+from fastq_watcher.sapio_types import SapioRecord, SequencingFile
 
 
 class SapioClient:
-    """Adapter for basic SequencingFile operations using sapiopylib.
+    """Adapter for basic SequencingFile operations using the Sapio REST API.
 
-    This follows the patterns in the Sapio Python tutorials:
-    - create a SapioUser
-    - obtain a DataRecord manager via DataMgmtServer.get_data_record_manager(user)
-    - query records, set fields via `set_field_value`, and commit via
-      `commit_data_records`.
+    This client implements only a small subset of operations used by the CLI:
+    - query a SequencingFile by uuid
+    - update the `read1_fastq` and `read2_fastq` fields for a record
 
-    This module imports the required sapiopylib classes at module import time
-    (no lazy imports). Tests should ensure a fake `sapiopylib` package is
-    available in `sys.modules` before importing this module when running in
-    environments without the real package installed.
+    Tests should inject an HTTP session (`requests.Session` or a compatible
+    mock) to avoid real network calls.
     """
 
     def __init__(
@@ -33,109 +33,76 @@ class SapioClient:
         api_token: str | None = None,
         url_base: str | None = None,
         app_key: str | None = None,
-        guid: str | None = None,
-        username: str | None = None,
-        password: str | None = None,
-        # Dependency injection hooks for testing: a callable that returns
-        # a SapioUser-like object and a DataMgmtServer-like class/object.
-        sapio_user_factory: Callable[..., Any] | None = None,
-        data_mgmt_server_cls: Any | None = None,
+        http_session: requests.Session | None = None,
         **extra: Any,
     ) -> None:
-        # Select the classes/factories to use (injection for tests or real
-        # sapiopylib types by default).
-        user_cls = sapio_user_factory or SapioUser
-        dms_cls = data_mgmt_server_cls or DataMgmtServer
+        # Remember base URL
+        if not url_base:
+            raise ValueError("Sapio URL (url_base) is required")
+        # Normalize base url (strip trailing slash)
+        self._url_base = url_base.rstrip("/")
 
-        # Map parameters to the SapioUser signature exactly. The SapioUser
-        # constructor requires `url` as the first argument. If it's missing
-        # we raise a clear error to the caller.
-        user_kwargs: dict[str, Any] = {}
-        if url_base:
-            user_kwargs["url"] = url_base
-        else:
-            raise ValueError("Sapio URL (url_base) is required to construct SapioUser")
-
-        # Match SapioUser parameter names
-        if api_token:
-            user_kwargs["api_token"] = api_token
-        if guid:
-            user_kwargs["guid"] = guid
+        # Prepare HTTP session for REST calls
+        self._session = http_session or requests.Session()
+        # Configure headers based on token/app_key etc.
+        # X-APP-KEY is required when multiple apps are hosted on the same domain.
+        headers = {}
         if app_key:
-            user_kwargs["account_name"] = app_key
-        if username:
-            user_kwargs["username"] = username
-        if password:
-            user_kwargs["password"] = password
+            headers["X-APP-KEY"] = app_key
+        if api_token:
+            headers["Authorization"] = f"Bearer {api_token}"
+        # Allow session-level headers to be updated but preserve any user-provided
+        # headers already set on the session.
+        self._session.headers.update(headers)
 
-        # Allow extra kwargs to be forwarded as well
-        user_kwargs.update(extra)
+    def find_by_values(
+        self, datatype: type[SapioRecord], field_name: str, values: list[Any]
+    ) -> list[SapioRecord]:
+        """Return a list of DataRecord-like objects matching the given field values.
 
-        # Create SapioUser (or fallback to no-arg constructor)
-        self._user = user_cls(**user_kwargs) if user_kwargs else user_cls()
-        # Resolve the data record manager using the selected DataMgmtServer
-        # class/object.
-        self._drm = dms_cls.get_data_record_manager(self._user)
+        This uses the REST API described in the swagger: POST to
+        /datarecordmanager/querydatarecords with query params and a ValueList
+        body. We request pageSize large enough to retrieve all matching records.
+        """
+        if not issubclass(datatype, SapioRecord):
+            raise ValueError("datatype must be a SapioRecord subclass")
+        endpoint = f"{self._url_base}/datarecordmanager/querydatarecords"
+        params = {
+            "dataTypeName": datatype.__name__,
+            "dataFieldName": field_name,
+            "pageSize": -1,
+        }
+        body = values
 
-    def find_sequencingfile_by_uuid(self, uuid: str | UUID) -> Any | None:
+        resp = self._session.post(endpoint, params=params, json=body)
+        resp.raise_for_status()
+
+        data = resp.json()
+        # The response should be a DataRecordPojoListPageResult with 'resultList'
+        results = data.get("resultList") if isinstance(data, dict) else None
+        if not results:
+            return []
+        return [datatype.model_validate(r) for r in results]
+
+    def update_record(self, record: SapioRecord) -> None:
+        """Update fields on the given DataRecord and commit.
+
+        This uses the `set_field_value` API and `commit_data_records` from the
+        Data Record Manager as shown in the tutorial.
+        """
+
+        endpoint = f"{self._url_base}/datarecordlist/fields"
+        resp = self._session.put(endpoint, json=[record.update_payload()])
+        resp.raise_for_status()
+
+    def find_sequencingfile_by_uuid(self, uuid: str | UUID) -> SequencingFile | None:
         """Return a DataRecord-like object for the first SequencingFile matching uuid.
 
         This tries a couple of common query patterns used in the Sapio tutorials.
         The exact method names on the DataRecord manager may vary by version; if
         they are not present an informative RuntimeError is raised.
         """
-        # Common pattern: a query by field. Some DataRecord managers expose
-        # `query_records` or `query` methods. Try a best-effort approach.
-        try:
-            # Attempt a generic query_records(filters=...)
-            uuid_str = str(uuid)
-            if hasattr(self._drm, "query_records"):
-                results = self._drm.query_records("SequencingFile", filters={"uuid": uuid_str})
-            elif hasattr(self._drm, "query"):
-                results = self._drm.query("SequencingFile", {"uuid": uuid_str})
-            else:
-                # Fall back to a less structured API if available.
-                raise AttributeError("no query API found on data record manager")
-        except AttributeError as exc:
-            raise RuntimeError(
-                "DataRecord manager does not expose a query API; check sapiopylib version"
-            ) from exc
-
-        if not results:
+        response = self.find_by_values(SequencingFile, "SampleGuid", [str(uuid)])
+        if not response:
             return None
-
-        # Return the first matching record. In the Sapio tutorials this is a
-        # DataRecord object which supports `set_field_value` and other helpers.
-        return results[0]
-
-    def update_sequencingfile_paths(self, record: Any, r1_path: str, r2_path: str) -> None:
-        """Set fields `read1_fastq` and `read2_fastq` on the given DataRecord and commit.
-
-        This uses the `set_field_value` API and `commit_data_records` from the
-        Data Record Manager as shown in the tutorial.
-        """
-        # The DataRecord object in sapiopylib exposes `set_field_value`.
-        if not hasattr(record, "set_field_value"):
-            # Some APIs may return plain dicts; try to set attributes as fallback.
-            try:
-                setattr(record, "read1_fastq", r1_path)
-                setattr(record, "read2_fastq", r2_path)
-            except Exception as exc:
-                raise RuntimeError("Record object doesn't support field setting") from exc
-            # If we cannot call commit_data_records without the original manager,
-            # attempt to detect a manager on the record or raise.
-            if hasattr(self._drm, "commit_data_records"):
-                try:
-                    self._drm.commit_data_records([record])
-                    return
-                except Exception:
-                    raise RuntimeError("Failed to commit changes to record")
-            raise RuntimeError("Cannot commit changes: no commit API available")
-
-        # Preferred path: use set_field_value and commit via the manager
-        record.set_field_value("read1_fastq", r1_path)
-        record.set_field_value("read2_fastq", r2_path)
-        # Commit via data record manager
-        if not hasattr(self._drm, "commit_data_records"):
-            raise RuntimeError("DataRecord manager missing commit_data_records method")
-        self._drm.commit_data_records([record])
+        return response[0]

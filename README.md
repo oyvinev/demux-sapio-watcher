@@ -14,7 +14,6 @@ Usage (dry run):
 Installing dependencies in Docker
 
 This project prefers installing runtime dependencies in the `Dockerfile`.
-The included `Dockerfile` already installs `sapiopylib`.
 
 Run tests
 

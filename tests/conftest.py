@@ -1,5 +1,15 @@
 import logging
 import pytest
+import sys
+from pathlib import Path
+
+
+# Make sure the workspace package directory is first on sys.path so imports
+# load the edited source under /workspaces/fastq-sapio-watcher instead of any
+# duplicate copies mounted at /app.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 @pytest.fixture(scope="session", autouse=True)

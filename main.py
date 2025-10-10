@@ -12,20 +12,19 @@ from fastq_watcher.cli import main as cli_main
 
 
 def main(argv: list[str] | None = None) -> int:
-	"""Run the CLI.
+    """Run the CLI.
 
-	Returns an exit code suitable for `sys.exit`.
-	"""
-	if argv is None:
-		argv = sys.argv[1:]
-	try:
-		cli_main(argv)
-		return 0
-	except Exception as exc:  # pragma: no cover - top-level guard
-		print(f"Error: {exc}", file=sys.stderr)
-		return 2
+    Returns an exit code suitable for `sys.exit`.
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+    try:
+        cli_main(argv)
+        return 0
+    except Exception as exc:  # pragma: no cover - top-level guard
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
-	raise SystemExit(main())
-
+    raise SystemExit(main())

@@ -1,5 +1,6 @@
 from pathlib import Path
-from unittest import mock
+from unittest.mock import MagicMock
+from types import SimpleNamespace
 
 from fastq_watcher import cli
 from uuid import UUID
@@ -31,25 +32,26 @@ def test_cli_updates_sapio(monkeypatch, tmp_path: Path, capsys):
     uuid = "123e4567-e89b-12d3-a456-426614174000"
     r1, r2 = make_fastq_pair(tmp_path, uuid)
 
-    # Patch SapioClient to avoid importing sapiopylib and to assert calls
-    class DummyRecord:
-        def __init__(self, uuid):
-            self.uuid = uuid
+    # Use a MagicMock for SapioClient so we can assert calls directly.
+    record_obj = SimpleNamespace(uuid=uuid)
+    client_mock = MagicMock()
+    client_mock.find_sequencingfile_by_uuid.return_value = record_obj
 
-    class DummyClient:
-        def find_sequencingfile_by_uuid(self, u):
-            # u may be a UUID instance
-            assert UUID(str(u)) == UUID(uuid)
-            return DummyRecord(uuid)
-
-        def update_sequencingfile_paths(self, record, r1p, r2p):
-            assert record.uuid == uuid
-            assert Path(r1p).resolve() == r1.resolve()
-            assert Path(r2p).resolve() == r2.resolve()
-
-    monkeypatch.setattr(cli, "SapioClient", lambda *a, **k: DummyClient())
+    # Patch the CLI to use our mock client instance
+    monkeypatch.setattr(cli, "SapioClient", lambda *a, **k: client_mock)
 
     patterns = [str(tmp_path / "**" / "*_R1.fastq")]
     # Provide a dummy API token so the CLI validation accepts authentication
     # Run — DummyClient asserts update was called; logging is side-effect only.
     cli.main(["--api-token", "dummy-token", *patterns])
+
+    # Assert the client methods were called as expected
+    client_mock.find_sequencingfile_by_uuid.assert_called_once()
+    client_mock.update_record.assert_called_once()
+
+    # Check the arguments update_record was called with
+    called_args = client_mock.update_record.call_args[0]
+    called_record = called_args[0]
+    assert called_record.uuid == uuid
+    assert Path(called_record.read1_fastq).resolve() == r1.resolve()
+    assert Path(called_record.read2_fastq).resolve() == r2.resolve()
