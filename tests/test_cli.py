@@ -1,9 +1,9 @@
 from pathlib import Path
-from unittest.mock import MagicMock
 from types import SimpleNamespace
-
-from fastq_watcher import cli
+from unittest.mock import MagicMock
 from uuid import UUID
+
+from src import cli
 
 
 def make_fastq_pair(tmpdir: Path, uuid: str):

@@ -13,7 +13,7 @@ from uuid import UUID
 
 import requests
 
-from fastq_watcher.sapio_types import SapioRecord, SequencingFile
+from src.sapio_types import SapioRecord, SequencingFile
 
 
 class SapioClient:

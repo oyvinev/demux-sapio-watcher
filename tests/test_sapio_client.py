@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-from fastq_watcher.sapio_client import SapioClient
-from fastq_watcher.sapio_types import SapioRecord
+from src.sapio_client import SapioClient
+from src.sapio_types import SapioRecord
 
 
 def make_fake_response(result_list):

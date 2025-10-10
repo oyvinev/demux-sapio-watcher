@@ -1,8 +1,8 @@
 import logging
-import pytest
 import sys
 from pathlib import Path
 
+import pytest
 
 # Make sure the workspace package directory is first on sys.path so imports
 # load the edited source under /workspaces/fastq-sapio-watcher instead of any
