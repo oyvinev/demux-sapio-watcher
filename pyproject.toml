@@ -1,6 +1,6 @@
 [project]
-name = "fastq-sapio-watcher"
-version = "0.0.0"
+name = "demultiplexing-sapio-watcher"
+version = "0.0.1"
 requires-python = ">=3.13"
 dependencies = [
   "hypothesis>=6.140.3",
@@ -15,6 +15,3 @@ dev = [
   "coverage==7.10.7",
   "pytest-cov>=7.0.0",
 ]
-
-[tool.uv]
-constraint-dependencies = ["kaleido!=0.2.1.post1"]
