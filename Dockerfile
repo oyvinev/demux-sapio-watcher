@@ -30,3 +30,5 @@ WORKDIR /app
 # Copy the rest of the project
 COPY . /app
 ENV PYTHONPATH=/app
+
+ENTRYPOINT ["demux-sapio-watcher"]

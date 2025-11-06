@@ -1,7 +1,7 @@
 from pathlib import Path
-from src.bclconvert.parse_folder import parse_bclconvert_folder
-from src.bclconvert.find_folders import find_bclconvert_folders
-from src.sapio_types import SequencingFile
+from demux_sapio_watcher.bclconvert.parse_folder import parse_bclconvert_folder
+from demux_sapio_watcher.bclconvert.find_folders import find_bclconvert_folders
+from demux_sapio_watcher.sapio_types import SequencingFile
 from tests.conftest import runfolder
 from tests.data_generation import PairedReadSampleTestData, build_samples
 

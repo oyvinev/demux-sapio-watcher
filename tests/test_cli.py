@@ -5,7 +5,7 @@ import hypothesis as ht
 from pytest import MonkeyPatch
 
 from src import cli
-from src.sapio_types import SequencingFile
+from demux_sapio_watcher.sapio_types import SequencingFile
 from tests.conftest import runfolder
 from tests.data_generation import (
     PairedReadSampleTestData,

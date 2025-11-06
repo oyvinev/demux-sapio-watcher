@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from src.bclconvert.find_folders import find_bclconvert_folders
+from demux_sapio_watcher.bclconvert.find_folders import find_bclconvert_folders
 from tests.conftest import runfolder
 
 

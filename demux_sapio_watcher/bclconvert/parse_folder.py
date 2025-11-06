@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from src.bclconvert.models import (
+from demux_sapio_watcher.bclconvert.models import (
     CombinedSampleData,
     DemuxStats,
     FastqListEntry,

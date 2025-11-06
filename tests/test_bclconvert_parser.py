@@ -1,8 +1,8 @@
 from pathlib import Path
 import hypothesis as ht
 
-from src.bclconvert.find_folders import find_bclconvert_folders
-from src.bclconvert.parse_folder import parse_bclconvert_folder
+from demux_sapio_watcher.bclconvert.find_folders import find_bclconvert_folders
+from demux_sapio_watcher.bclconvert.parse_folder import parse_bclconvert_folder
 from tests.conftest import runfolder
 from tests.data_generation import (
     PairedReadSampleTestData,

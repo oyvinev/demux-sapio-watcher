@@ -11,7 +11,7 @@ from uuid import UUID
 
 import requests
 
-from src.sapio_types import SapioRecord, SequencingFile
+from demux_sapio_watcher.sapio_types import SapioRecord, SequencingFile
 
 
 class SapioClient:
