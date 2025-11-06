@@ -6,6 +6,8 @@ from tests.conftest import runfolder
 from tests.data_generation import PairedReadSampleTestData, build_samples
 
 import hypothesis as ht
+
+
 @ht.given(build_samples())
 def test_conversion(samples: list[PairedReadSampleTestData]):
     with runfolder(samples) as rf:
@@ -15,6 +17,7 @@ def test_conversion(samples: list[PairedReadSampleTestData]):
         data = list(parse_bclconvert_folder(bclconvert_folder))
         converted = [SequencingFile.from_bclconvert(item) for item in data]
         assert len(converted) == len(data)
+
 
 @ht.given(build_samples())
 def test_payload(samples: list[PairedReadSampleTestData]):

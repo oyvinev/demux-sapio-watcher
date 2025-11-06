@@ -14,11 +14,9 @@ from tests.data_generation import (
 )
 
 
-
 @ht.given(build_samples())
 def test_parse_bclconvert_folder(samples: list[PairedReadSampleTestData]):
     with runfolder(samples) as rf:
-
         bclconvert_folders = find_bclconvert_folders([Path(rf.root)])
         assert len(bclconvert_folders) == 1
         bclconvert_folder = bclconvert_folders.pop()

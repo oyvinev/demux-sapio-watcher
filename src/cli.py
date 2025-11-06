@@ -23,7 +23,6 @@ if not logger.handlers:
     logger.propagate = False
 
 
-
 def main() -> None:
     parser = argparse.ArgumentParser(prog="fastq-watcher")
     parser.add_argument("root_paths", nargs="+", help="root paths to search")

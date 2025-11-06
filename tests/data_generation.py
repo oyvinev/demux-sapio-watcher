@@ -5,7 +5,6 @@ import hypothesis.strategies as st
 from pydantic import BaseModel, computed_field
 
 
-
 class RunFolder:
     FASTQC_LIST = "Analysis/1/Data/BCLConvert/fastq/Reports/fastq_list.csv"
     DEMULTIPLEX_STATS = "Analysis/1/Data/BCLConvert/fastq/Reports/Demultiplex_Stats.csv"
@@ -20,7 +19,7 @@ class RunFolder:
         self.fastqc_list_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.fastqc_list_path, "w") as f:
             f.write("RGID,RGSM,RGLB,Lane,Read1File,Read2File\n")
-        
+
         # demultiplex_stats
         self.demultiplex_stats_path = Path(self.root, self.DEMULTIPLEX_STATS)
         self.demultiplex_stats_path.parent.mkdir(parents=True, exist_ok=True)
@@ -67,7 +66,7 @@ class RunFolder:
                 )
                 + "\n"
             )
-    
+
     def _create_fastq_files(self, samples: list["PairedReadSampleTestData"]):
         for sample in samples:
             if isinstance(sample, PairedReadSampleTestData):
@@ -75,29 +74,36 @@ class RunFolder:
             else:
                 paths = [sample.fastq_read1_path]
             for path in paths:
-                assert not path.is_absolute(), "Fastq paths must be relative in this test setup"
+                assert not path.is_absolute(), (
+                    "Fastq paths must be relative in this test setup"
+                )
                 absolute_path = (Path(self.fastqc_list_path).parent / path).resolve()
-                assert absolute_path.is_relative_to(self.root), "Fastq paths must be within the runfolder"
+                assert absolute_path.is_relative_to(self.root), (
+                    "Fastq paths must be within the runfolder"
+                )
                 absolute_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(absolute_path, "w") as f:
-                    f.write("")  # create empty file 
+                    f.write("")  # create empty file
 
-
-
-    def _write_fastqc_list(self, samples: list["PairedReadSampleTestData | SingleReadSampleTestData"]):
+    def _write_fastqc_list(
+        self, samples: list["PairedReadSampleTestData | SingleReadSampleTestData"]
+    ):
         with open(self.fastqc_list_path, "a") as f:
             for sample in samples:
                 f.write(
                     ",".join(
                         [
-                        "AAAAAAAA.CCCCCCC.1",  # RGID
-                        sample.name,  # RGSM
-                        "LIBRARY1",  # RGLB
-                        "1",  # Lane
-                        sample.fastq_read1_path.as_posix(),  # Read1File
-                        sample.fastq_read2_path.as_posix() if isinstance(sample, PairedReadSampleTestData) else "",  # Read2File
+                            "AAAAAAAA.CCCCCCC.1",  # RGID
+                            sample.name,  # RGSM
+                            "LIBRARY1",  # RGLB
+                            "1",  # Lane
+                            sample.fastq_read1_path.as_posix(),  # Read1File
+                            sample.fastq_read2_path.as_posix()
+                            if isinstance(sample, PairedReadSampleTestData)
+                            else "",  # Read2File
                         ]
-                    ) + "\n"
+                    )
+                    + "\n"
                 )
 
     def _write_demux_stats(self, samples: list["PairedReadSampleTestData"]):
@@ -111,9 +117,15 @@ class RunFolder:
                             "Project_1",  # Sample_Project
                             "ATCG-GCTA",  # Index
                             str(sample.num_reads),  # # Reads
-                            str(sample.num_perfect_index_reads),  # # Perfect Index Reads
-                            str(sample.num_one_mismatch_index_reads),  # # One Mismatch Index Reads
-                            str(sample.num_two_mismatch_index_reads),  # # Two Mismatch Index Reads
+                            str(
+                                sample.num_perfect_index_reads
+                            ),  # # Perfect Index Reads
+                            str(
+                                sample.num_one_mismatch_index_reads
+                            ),  # # One Mismatch Index Reads
+                            str(
+                                sample.num_two_mismatch_index_reads
+                            ),  # # Two Mismatch Index Reads
                             f"{sample.percent_reads:.4f}",  # % Reads
                             f"{sample.percent_perfect_index_reads:.4f}",  # % Perfect Index Reads
                             f"{sample.percent_one_mismatch_index_reads:.4f}",  # % One Mismatch Index Reads
@@ -171,8 +183,7 @@ class RunFolder:
         self._write_fastqc_list(samples)
         self._write_demux_stats(samples)
         self._write_quality_metrics(samples)
-        
-        
+
 
 class SingleReadSampleTestData(BaseModel):
     name: str = "Sample"
@@ -204,7 +215,7 @@ class SingleReadSampleTestData(BaseModel):
     @property
     def num_two_mismatch_index_reads(self) -> int:
         return int(self.num_reads * 0.03)  # assuming 3% two mismatch index reads
-    
+
     @computed_field
     @property
     def fastq_read1_path(self) -> Path:
@@ -225,22 +236,22 @@ class PairedReadSampleTestData(SingleReadSampleTestData):
     r2_yield: int
     r2_mean_quality_score: float
     r2_percentage_q30: float
-    
+
     @computed_field
     @property
     def fastq_read2_path(self) -> Path | None:
         return Path(f"../{self.name}_R2_001.fastq.gz")
-    
+
     @computed_field
     @property
     def r2_yield_q30(self) -> int:
         return int(self.r2_yield * self.r2_percentage_q30)
 
-    
     @computed_field
     @property
     def r2_quality_score_sum(self) -> int:
         return int(self.r2_mean_quality_score * self.r2_yield)
+
 
 test_paired_sample_strategy = st.builds(
     PairedReadSampleTestData,
@@ -267,20 +278,22 @@ test_single_read_sample_strategy = st.builds(
     percent_perfect_index_reads=st.floats(0.8, 0.99),
     percent_one_mismatch_index_reads=st.floats(0.01, 0.1),
     percent_two_mismatch_index_reads=st.floats(0.001, 0.05),
-)   
+)
 
-                         
+
 @st.composite
 def build_single_read_sample(draw):
     sample = draw(test_single_read_sample_strategy)
     sample.name = f"Sample_1_{str(sample.uuid)}"
     return sample
 
+
 @st.composite
 def build_paired_read_sample(draw):
     sample = draw(test_paired_sample_strategy)
     sample.name = f"Sample_1_{str(sample.uuid)}"
     return sample
+
 
 @st.composite
 def build_samples(draw):

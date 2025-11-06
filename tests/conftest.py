@@ -34,8 +34,7 @@ def enable_logger_propagation_session():
 
 @contextmanager
 def runfolder(samples: list[PairedReadSampleTestData], dir: Path | None = None):
-    
     with tempfile.TemporaryDirectory(dir=dir) as tmpdirname:
-        rf =  RunFolder(tmpdirname)
+        rf = RunFolder(tmpdirname)
         rf.write_samples(samples)
         yield rf
