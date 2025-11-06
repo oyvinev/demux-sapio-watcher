@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /opt
 COPY pyproject.toml uv.lock .
 RUN pip install --no-cache-dir uv==0.9.0 && \
-    uv sync --all-groups
+    uv sync --no-cache --all-groups
 
 ENV VIRTUAL_ENV=/opt/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
