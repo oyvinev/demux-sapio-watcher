@@ -25,6 +25,7 @@ def test_find_by_uuid():
         "RecordId": 2,
         "SampleGuid": str(uuid),
         "dataTypeName": "SequencingFile",
+        "AllFilesAvailable": False,
     }
     fake_session = MagicMock()
     fake_session.post = MagicMock(return_value=make_fake_response([fake_record]))

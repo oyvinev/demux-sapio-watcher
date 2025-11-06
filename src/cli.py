@@ -1,26 +1,18 @@
-"""CLI to locate FASTQ R1/R2 pairs and update Sapio SequencingFile records.
-
-This CLI is intentionally small and testable. It accepts glob patterns and
-walks the filesystem for files matching `*_R1.fastq` and corresponding
-`*_R2.fastq`.
-"""
-
-from __future__ import annotations
-
 import argparse
-import glob
 import logging
 import os
-import re
 import sys
 from pathlib import Path
-from typing import Iterable, Iterator, List, Optional, Tuple
-from uuid import UUID
+
+from src.bclconvert.find_folders import find_bclconvert_folders
+from src.bclconvert.parse_folder import parse_bclconvert_folder
+from src.sapio_types import SequencingFile
+
 
 from .sapio_client import SapioClient
 
 # Configure module-level logger
-logger = logging.getLogger("fastq-sapio-watcher")
+logger = logging.getLogger("demultiplexing-sapio-watcher")
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stdout)
     fmt = "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s"
@@ -31,46 +23,11 @@ if not logger.handlers:
     logger.propagate = False
 
 
-UUID_RE = re.compile(
-    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-)
 
-
-def find_fastq_pairs(globs: Iterable[str]) -> Iterator[Tuple[UUID, str, str]]:
-    """Yield tuples (uuid, r1_path, r2_path) for discovered FASTQ pairs.
-
-    The expected filename format is <prefix>_R1.fastq and <prefix>_R2.fastq where
-    <prefix> contains a UUID which will be extracted.
-    """
-    r1_files: List[str] = []
-    for pattern in globs:
-        r1_files.extend(glob.glob(pattern, recursive=True))
-
-    seen = set()
-    for path_str in r1_files:
-        p: Path = Path(path_str)
-        if not p.name.endswith("_R1.fastq"):
-            continue
-        prefix = p.name[: -len("_R1.fastq")]
-        r2_path = p.with_name(prefix + "_R2.fastq")
-        if not r2_path.exists():
-            continue
-        m = UUID_RE.search(prefix)
-        if not m:
-            continue
-        uuid = UUID(m.group(0))
-        r1_abs = str(p.resolve())
-        r2_abs = str(r2_path.resolve())
-        key = (uuid, r1_abs, r2_abs)
-        if key in seen:
-            continue
-        seen.add(key)
-    yield uuid, r1_abs, r2_abs
-
-
-def main(argv: Optional[List[str]] = None) -> None:
+def main() -> None:
     parser = argparse.ArgumentParser(prog="fastq-watcher")
-    parser.add_argument("patterns", nargs="+", help="glob patterns to search")
+    parser.add_argument("root_paths", nargs="+", help="root paths to search")
+    parser.add_argument("--exclude-patterns", nargs="+", help="patterns to exclude")
     parser.add_argument(
         "--dry-run", action="store_true", help="don't call Sapio, just print"
     )
@@ -105,7 +62,9 @@ def main(argv: Optional[List[str]] = None) -> None:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Set log level",
     )
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
+
+    args.root_paths = [Path(p) for p in args.root_paths]
 
     # Require authentication: either an API token, or username+password.
     if not (args.api_token or (args.username and args.password)):
@@ -133,15 +92,23 @@ def main(argv: Optional[List[str]] = None) -> None:
             password=args.password,
         )
 
-    for uuid, r1, r2 in find_fastq_pairs(args.patterns):
-        if args.dry_run:
-            logger.info("Found UUID=%s, R1=%s, R2=%s", uuid, r1, r2)
-            continue
-        record = client.find_sequencingfile_by_uuid(uuid)
-        if record is None:
-            logger.warning("UUID %s not found in Sapio", uuid)
-            continue
-        record.read1_fastq = r1
-        record.read2_fastq = r2
-        client.update_record(record)
-        logger.info("Updated SequencingFile %s with R1=%s R2=%s", uuid, r1, r2)
+    for bcl_convert_folder in find_bclconvert_folders(
+        args.root_paths, exclude_patterns=args.exclude_patterns
+    ):
+        for sample_data in parse_bclconvert_folder(bcl_convert_folder):
+            sequencing_file = SequencingFile.from_bclconvert(sample_data)
+            uuid = sequencing_file.sample_guid
+            if args.dry_run:
+                # logger.info("Found UUID=%s, R1=%s, R2=%s", uuid, r1, r2)
+                continue
+            record = client.find_sequencingfile_by_uuid(uuid)
+            if record is None:
+                logger.warning("UUID %s not found in Sapio", uuid)
+                continue
+            sequencing_file.record_id = record.record_id
+            client.update_record(sequencing_file)
+            # logger.info("Updated SequencingFile %s with R1=%s R2=%s", uuid, r1, r2)
+
+
+if __name__ == "__main__":
+    main()

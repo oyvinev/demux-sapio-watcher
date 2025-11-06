@@ -20,11 +20,8 @@ class SapioClient:
     """Adapter for basic SequencingFile operations using the Sapio REST API.
 
     This client implements only a small subset of operations used by the CLI:
-    - query a SequencingFile by uuid
-    - update the `read1_fastq` and `read2_fastq` fields for a record
-
-    Tests should inject an HTTP session (`requests.Session` or a compatible
-    mock) to avoid real network calls.
+    - Query for a record with a corresponding SapioRecord class
+    - Update a record from a SapioRecord instance
     """
 
     def __init__(
@@ -34,7 +31,6 @@ class SapioClient:
         url_base: str | None = None,
         app_key: str | None = None,
         http_session: requests.Session | None = None,
-        **extra: Any,
     ) -> None:
         # Remember base URL
         if not url_base:
@@ -85,23 +81,14 @@ class SapioClient:
         return [datatype.model_validate(r) for r in results]
 
     def update_record(self, record: SapioRecord) -> None:
-        """Update fields on the given DataRecord and commit.
-
-        This uses the `set_field_value` API and `commit_data_records` from the
-        Data Record Manager as shown in the tutorial.
-        """
+        """Update fields on the given DataRecord and commit."""
 
         endpoint = f"{self._url_base}/datarecordlist/fields"
         resp = self._session.put(endpoint, json=[record.update_payload()])
         resp.raise_for_status()
 
     def find_sequencingfile_by_uuid(self, uuid: str | UUID) -> SequencingFile | None:
-        """Return a DataRecord-like object for the first SequencingFile matching uuid.
-
-        This tries a couple of common query patterns used in the Sapio tutorials.
-        The exact method names on the DataRecord manager may vary by version; if
-        they are not present an informative RuntimeError is raised.
-        """
+        """Return a DataRecord-like object for the first SequencingFile matching uuid."""
         response = self.find_by_values(SequencingFile, "SampleGuid", [str(uuid)])
         if not response:
             return None
