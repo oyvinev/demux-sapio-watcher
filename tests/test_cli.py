@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import hypothesis as ht
 from pytest import MonkeyPatch
 
-from src import cli
+from demux_sapio_watcher import cli
 from demux_sapio_watcher.sapio_types import SequencingFile
 from tests.conftest import runfolder
 from tests.data_generation import (

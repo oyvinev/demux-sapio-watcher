@@ -23,7 +23,7 @@ if not logger.handlers:
     logger.propagate = False
 
 
-def main() -> None:
+def main(argv: list[str]) -> None:
     parser = argparse.ArgumentParser(prog="fastq-watcher")
     parser.add_argument("root_paths", nargs="+", help="root paths to search")
     parser.add_argument("--exclude-patterns", nargs="+", help="patterns to exclude")
@@ -61,7 +61,7 @@ def main() -> None:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Set log level",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     args.root_paths = [Path(p) for p in args.root_paths]
 
@@ -122,4 +122,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)
