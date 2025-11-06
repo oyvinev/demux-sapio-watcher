@@ -94,15 +94,27 @@ def main() -> None:
     for bcl_convert_folder in find_bclconvert_folders(
         args.root_paths, exclude_patterns=args.exclude_patterns
     ):
-        for sample_data in parse_bclconvert_folder(bcl_convert_folder):
+        it = parse_bclconvert_folder(bcl_convert_folder)
+        while True:
+            try:
+                sample_data = next(it)
+            except StopIteration:
+                break
+            except Exception as e:
+                logger.warning(f"Failed to parse sample data: {e}")
+                continue
+
             sequencing_file = SequencingFile.from_bclconvert(sample_data)
             uuid = sequencing_file.sample_guid
             if args.dry_run:
-                # logger.info("Found UUID=%s, R1=%s, R2=%s", uuid, r1, r2)
+                logger.info(
+                    f"DRY RUN: Found and parsed SequencingFile: {sequencing_file}"
+                )
                 continue
+            logger.info(f"Found and parsed SequencingFile: {sequencing_file}")
             record = client.find_sequencingfile_by_uuid(uuid)
             if record is None:
-                logger.warning("UUID %s not found in Sapio", uuid)
+                logger.warning(f"UUID {uuid} not found in Sapio")
                 continue
             sequencing_file.record_id = record.record_id
             client.update_record(sequencing_file)

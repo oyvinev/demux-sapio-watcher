@@ -70,5 +70,5 @@ class SequencingFile(SapioRecord):
             FASTQ_path_I1=None,
             FASTQ_path_I2=None,
             SampleName=combined_data.fastq.sample_id,
-            AllFilesAvailable=True,
+            AllFilesAvailable=True,  # If we have a CombinedSampleData object, then this is True
         )
