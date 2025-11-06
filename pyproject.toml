@@ -17,6 +17,8 @@ dev = [
   "pytest==8.4.2",
   "coverage==7.10.7",
   "pytest-cov>=7.0.0",
+  "mypy>=1.18.2",
+  "types-requests>=2.32.4.20250913",
 ]
 
 [build-system]
@@ -25,3 +27,26 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["demux_sapio_watcher"]
+
+
+[tool.mypy]
+python_version = "3.14"
+plugins = [
+    "pydantic.mypy",
+]
+disable_error_code = ["prop-decorator"]
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+strict_equality = true
+warn_unreachable = true
+enable_error_code = [
+    "redundant-expr",
+    "truthy-bool",
+    "truthy-iterable",
+    "ignore-without-code",
+    "explicit-override",
+    "unimported-reveal",
+]

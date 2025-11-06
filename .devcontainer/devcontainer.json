@@ -13,8 +13,25 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"charliermarsh.ruff"
-			]
+				"charliermarsh.ruff",
+				"ms-python.mypy-type-checker"
+			],
+			"settings": {
+				// Format on autosave, and organize imports on save, using ruff
+				"editor.formatOnSave": true,
+				"editor.codeActionsOnSave": {
+					"source.organizeImports": "explicit",
+					"source.fixAll": "explicit"
+				},
+				"[python]": {
+					"editor.defaultFormatter": "charliermarsh.ruff",
+					"editor.formatOnSave": true
+				},
+				"ruff.organizeImports": true,
+				"ruff.fixAll": true,
+				"mypy-type-checker.importStrategy": "fromEnvironment",
+				"python.analysis.typeCheckingMode": "off"
+			}
 		}
 	},
 

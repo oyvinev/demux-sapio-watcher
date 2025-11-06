@@ -6,7 +6,11 @@ import tempfile
 
 import pytest
 
-from tests.data_generation import PairedReadSampleTestData, RunFolder
+from tests.data_generation import (
+    PairedReadSampleTestData,
+    RunFolder,
+    SingleReadSampleTestData,
+)
 
 # Make sure the workspace package directory is first on sys.path so imports
 # load the edited source under /workspaces/fastq-sapio-watcher instead of any
@@ -33,8 +37,11 @@ def enable_logger_propagation_session():
 
 
 @contextmanager
-def runfolder(samples: list[PairedReadSampleTestData], dir: Path | None = None):
+def runfolder(
+    samples: list[PairedReadSampleTestData] | list[SingleReadSampleTestData],
+    dir: Path | str | None = None,
+):
     with tempfile.TemporaryDirectory(dir=dir) as tmpdirname:
-        rf = RunFolder(tmpdirname)
+        rf = RunFolder(Path(tmpdirname))
         rf.write_samples(samples)
         yield rf

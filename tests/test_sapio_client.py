@@ -34,6 +34,7 @@ def test_find_by_uuid():
         url_base="https://sapio.example/webservice/api", http_session=fake_session
     )
     res = client.find_sequencingfile_by_uuid(uuid)
+    assert res is not None
     assert res.record_id == 2
     assert res.sample_guid == uuid
     fake_session.post.assert_called()

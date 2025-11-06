@@ -67,7 +67,9 @@ class RunFolder:
                 + "\n"
             )
 
-    def _create_fastq_files(self, samples: list[PairedReadSampleTestData]):
+    def _create_fastq_files(
+        self, samples: list[PairedReadSampleTestData] | list[SingleReadSampleTestData]
+    ):
         for sample in samples:
             if isinstance(sample, PairedReadSampleTestData):
                 paths = [sample.fastq_read1_path, sample.fastq_read2_path]
@@ -86,7 +88,7 @@ class RunFolder:
                     f.write("")  # create empty file
 
     def _write_fastqc_list(
-        self, samples: list[PairedReadSampleTestData | SingleReadSampleTestData]
+        self, samples: list[PairedReadSampleTestData] | list[SingleReadSampleTestData]
     ):
         with open(self.fastqc_list_path, "a") as f:
             for sample in samples:
@@ -106,7 +108,9 @@ class RunFolder:
                     + "\n"
                 )
 
-    def _write_demux_stats(self, samples: list[PairedReadSampleTestData]):
+    def _write_demux_stats(
+        self, samples: list[PairedReadSampleTestData] | list[SingleReadSampleTestData]
+    ):
         with open(self.demultiplex_stats_path, "a") as f:
             for sample in samples:
                 f.write(
@@ -135,7 +139,9 @@ class RunFolder:
                     + "\n"
                 )
 
-    def _write_quality_metrics(self, samples: list[PairedReadSampleTestData]):
+    def _write_quality_metrics(
+        self, samples: list[PairedReadSampleTestData] | list[SingleReadSampleTestData]
+    ):
         with open(self.quality_metrics_path, "a") as f:
             for sample in samples:
                 # Read 1
@@ -178,7 +184,9 @@ class RunFolder:
                         + "\n"
                     )
 
-    def write_samples(self, samples: list[PairedReadSampleTestData]):
+    def write_samples(
+        self, samples: list[PairedReadSampleTestData] | list[SingleReadSampleTestData]
+    ):
         self._create_fastq_files(samples)
         self._write_fastqc_list(samples)
         self._write_demux_stats(samples)
@@ -239,7 +247,7 @@ class PairedReadSampleTestData(SingleReadSampleTestData):
 
     @computed_field
     @property
-    def fastq_read2_path(self) -> Path | None:
+    def fastq_read2_path(self) -> Path:
         return Path(f"../{self.name}_R2_001.fastq.gz")
 
     @computed_field
@@ -256,8 +264,8 @@ class PairedReadSampleTestData(SingleReadSampleTestData):
 test_paired_sample_strategy = st.builds(
     PairedReadSampleTestData,
     uuid=st.uuids(version=4),
-    r1_yield=st.integers(5e10, 1e11),
-    r2_yield=st.integers(5e10, 1e11),
+    r1_yield=st.integers(int(5e10), int(1e11)),
+    r2_yield=st.integers(int(5e10), int(1e11)),
     r1_mean_quality_score=st.floats(32, 42),
     r2_mean_quality_score=st.floats(32, 42),
     r1_percentage_q30=st.floats(0.85, 0.999),
@@ -271,7 +279,7 @@ test_paired_sample_strategy = st.builds(
 test_single_read_sample_strategy = st.builds(
     SingleReadSampleTestData,
     uuid=st.uuids(version=4),
-    r1_yield=st.integers(5e10, 1e11),
+    r1_yield=st.integers(int(5e10), int(1e11)),
     r1_mean_quality_score=st.floats(32, 42),
     r1_percentage_q30=st.floats(0.85, 0.999),
     percent_reads=st.floats(0.0001, 0.05),

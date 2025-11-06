@@ -27,7 +27,7 @@ def test_cli_updates_sapio(sample: PairedReadSampleTestData):
 
         # Provide a dummy API token so the CLI validation accepts authentication
         # Run — DummyClient asserts update was called; logging is side-effect only.
-        cli.main(["--api-token", "dummy-token", rf.root])
+        cli.main(["--api-token", "dummy-token", rf.root.as_posix()])
 
         # Assert the client methods were called as expected
         client_mock.find_sequencingfile_by_uuid.assert_called_once()
@@ -38,6 +38,8 @@ def test_cli_updates_sapio(sample: PairedReadSampleTestData):
         update_record = called_args[0]
         assert isinstance(update_record, SequencingFile)
         assert update_record.sample_guid == sample.uuid
+        assert update_record.fastq_path_R1
+        assert update_record.fastq_path_R2
         assert update_record.fastq_path_R1.name == sample.fastq_read1_path.name
         assert update_record.fastq_path_R2.name == sample.fastq_read2_path.name
 
@@ -60,7 +62,7 @@ def test_cli_processes_all_samples(samples: list[PairedReadSampleTestData]):
 
         # Provide a dummy API token so the CLI validation accepts authentication
         # Run — DummyClient asserts update was called; logging is side-effect only.
-        cli.main(["--api-token", "dummy-token", rf.root])
+        cli.main(["--api-token", "dummy-token", rf.root.as_posix()])
         assert client_mock.find_sequencingfile_by_uuid.call_count == len(samples)
         assert client_mock.update_record.call_count == len(samples)
 
@@ -87,6 +89,6 @@ def test_cli_does_not_update_non_existing_sapio_records(
         # Patch the CLI to use our mock client instance
         mp.setattr(cli, "SapioClient", lambda *a, **k: client_mock)
 
-        cli.main(["--api-token", "dummy-token", rf.root])
+        cli.main(["--api-token", "dummy-token", rf.root.as_posix()])
         assert client_mock.find_sequencingfile_by_uuid.call_count == len(samples)
         client_mock.update_record.assert_not_called()

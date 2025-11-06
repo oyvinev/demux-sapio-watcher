@@ -87,8 +87,8 @@ def main(argv: list[str]) -> None:
         client = SapioClient(
             url_base=args.url_base,
             app_key=args.app_key,
-            username=args.username,
-            password=args.password,
+            # username=args.username,
+            # password=args.password,
         )
 
     for bcl_convert_folder in find_bclconvert_folders(

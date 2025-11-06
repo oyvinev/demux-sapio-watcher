@@ -6,12 +6,14 @@ should inject a requests-like session when they need to avoid network
 calls.
 """
 
-from typing import Any
+from typing import Any, TypeVar
 from uuid import UUID
 
 import requests
 
 from demux_sapio_watcher.sapio_types import SapioRecord, SequencingFile
+
+TSapioRecord = TypeVar("TSapioRecord", bound=SapioRecord)
 
 
 class SapioClient:
@@ -50,8 +52,8 @@ class SapioClient:
         self._session.headers.update(headers)
 
     def find_by_values(
-        self, datatype: type[SapioRecord], field_name: str, values: list[Any]
-    ) -> list[SapioRecord]:
+        self, datatype: type[TSapioRecord], field_name: str, values: list[Any]
+    ) -> list[TSapioRecord]:
         """Return a list of DataRecord-like objects matching the given field values.
 
         This uses the REST API described in the swagger: POST to
@@ -61,7 +63,7 @@ class SapioClient:
         if not issubclass(datatype, SapioRecord):
             raise ValueError("datatype must be a SapioRecord subclass")
         endpoint = f"{self._url_base}/datarecordmanager/querydatarecords"
-        params = {
+        params: dict[str, int | str] = {
             "dataTypeName": datatype.__name__,
             "dataFieldName": field_name,
             "pageSize": -1,
