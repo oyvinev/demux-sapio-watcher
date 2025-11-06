@@ -3,11 +3,11 @@ import logging
 import os
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
 from demux_sapio_watcher.bclconvert.find_folders import find_bclconvert_folders
 from demux_sapio_watcher.bclconvert.parse_folder import parse_bclconvert_folder
 from demux_sapio_watcher.sapio_types import SequencingFile
-
 
 from .sapio_client import SapioClient
 
@@ -23,12 +23,12 @@ if not logger.handlers:
     logger.propagate = False
 
 
-def main(argv: list[str]) -> None:
+def cli(argv: list[str]) -> None:
     parser = argparse.ArgumentParser(prog="fastq-watcher")
     parser.add_argument("root_paths", nargs="+", help="root paths to search")
     parser.add_argument("--exclude-patterns", nargs="+", help="patterns to exclude")
     parser.add_argument(
-        "--dry-run", action="store_true", help="don't call Sapio, just print"
+        "--dry-run", action="store_true", help="Don't update Sapio, just log actions"
     )
     parser.add_argument(
         "--api-token",
@@ -61,15 +61,25 @@ def main(argv: list[str]) -> None:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Set log level",
     )
+    parser.add_argument(
+        "--no-sapio",
+        action="store_true",
+        help="Do not call Sapio API at all",
+    )
     args = parser.parse_args(argv)
 
-    args.root_paths = [Path(p) for p in args.root_paths]
+    args.root_paths = [Path(p).resolve() for p in args.root_paths]
+    if not args.root_paths:
+        raise parser.error("at least one root path is required")
 
     # Require authentication: either an API token, or username+password.
-    if not (args.api_token or (args.username and args.password)):
-        parser.error(
-            "Authentication required: provide --api-token or both --username and --password"
-        )
+    if not args.no_sapio:
+        if not (args.api_token or (args.username and args.password)):
+            parser.error(
+                "Authentication required: provide --api-token or both --username and --password"
+            )
+        if not args.url_base:
+            parser.error("Sapio base URL is required: provide --url-base")
 
     # Configure logger level if requested
     if args.log_level:
@@ -79,21 +89,28 @@ def main(argv: list[str]) -> None:
             parser.error(f"invalid log level: {args.log_level}")
 
     # If API token is provided, prefer it and don't send username/password.
-    if args.api_token:
-        client = SapioClient(
-            api_token=args.api_token, url_base=args.url_base, app_key=args.app_key
-        )
+    if not args.no_sapio:
+        if args.api_token:
+            client = SapioClient(
+                api_token=args.api_token, url_base=args.url_base, app_key=args.app_key
+            )
+        else:
+            client = SapioClient(
+                url_base=args.url_base,
+                app_key=args.app_key,
+                # username=args.username,
+                # password=args.password,
+            )
     else:
-        client = SapioClient(
-            url_base=args.url_base,
-            app_key=args.app_key,
-            # username=args.username,
-            # password=args.password,
-        )
+        logger.debug("Mocking Sapio, --no-sapio specified")
+        client = MagicMock()
 
+    logger.info("Looking for BclConvert folders")
+    logger.debug(f"Root paths: {args.root_paths}")
     for bcl_convert_folder in find_bclconvert_folders(
         args.root_paths, exclude_patterns=args.exclude_patterns
     ):
+        logger.debug(f"Processing BclConvert folder: {bcl_convert_folder}")
         it = parse_bclconvert_folder(bcl_convert_folder)
         while True:
             try:
@@ -119,7 +136,10 @@ def main(argv: list[str]) -> None:
             sequencing_file.record_id = record.record_id
             client.update_record(sequencing_file)
             # logger.info("Updated SequencingFile %s with R1=%s R2=%s", uuid, r1, r2)
+    logger.info("Done")
 
 
-if __name__ == "__main__":
-    main(sys.argv)
+def main(*args) -> None:
+    if not args:
+        args = (sys.argv[1:],)
+    cli(*args)
