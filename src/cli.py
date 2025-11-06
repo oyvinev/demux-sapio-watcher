@@ -12,7 +12,7 @@ from src.sapio_types import SequencingFile
 from .sapio_client import SapioClient
 
 # Configure module-level logger
-logger = logging.getLogger("demultiplexing-sapio-watcher")
+logger = logging.getLogger("demux-sapio-watcher")
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stdout)
     fmt = "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s"

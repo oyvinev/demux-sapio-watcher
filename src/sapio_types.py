@@ -56,7 +56,7 @@ class SequencingFile(SapioRecord):
     )
 
     @classmethod
-    def from_bclconvert(cls, combined_data: CombinedSampleData) -> "SequencingFile":
+    def from_bclconvert(cls, combined_data: CombinedSampleData) -> SequencingFile:
         sample_guid = UUID_RE.search(combined_data.fastq.sample_id)
         if not sample_guid:
             raise ValueError(

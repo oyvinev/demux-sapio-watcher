@@ -1,8 +1,11 @@
 # Use Python 3.13 as the base image
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Set working directory
 WORKDIR /app
+
+# Add user
+RUN useradd -ms /bin/bash demux-sapio-user
 
 # Install system dependencies (if any) and clean apt cache
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,10 +18,13 @@ WORKDIR /opt
 COPY pyproject.toml uv.lock .
 RUN pip install --no-cache-dir uv==0.9.0 && \
     uv sync --all-groups
-# RUN uv sync --help && exit 1
+
 ENV VIRTUAL_ENV=/opt/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+RUN chown -R demux-sapio-user:demux-sapio-user /opt/.venv
+# Switch to non-root user
+USER demux-sapio-user
 
 WORKDIR /app
 # Copy the rest of the project

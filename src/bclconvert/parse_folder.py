@@ -21,7 +21,7 @@ REQUIRED_BCLCONVERT_FILES = {
 
 def parse_bclconvert_folder(
     bclconvert_path: Path,
-) -> Generator[CombinedSampleData, None, None]:
+) -> Generator[CombinedSampleData]:
     """Parse the BCLConvert folder and return a dictionary with sample names as keys."""
     # Check for required files
     for file_desc, rel_path in REQUIRED_BCLCONVERT_FILES.items():

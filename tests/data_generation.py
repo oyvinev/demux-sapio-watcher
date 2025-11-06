@@ -67,7 +67,7 @@ class RunFolder:
                 + "\n"
             )
 
-    def _create_fastq_files(self, samples: list["PairedReadSampleTestData"]):
+    def _create_fastq_files(self, samples: list[PairedReadSampleTestData]):
         for sample in samples:
             if isinstance(sample, PairedReadSampleTestData):
                 paths = [sample.fastq_read1_path, sample.fastq_read2_path]
@@ -86,7 +86,7 @@ class RunFolder:
                     f.write("")  # create empty file
 
     def _write_fastqc_list(
-        self, samples: list["PairedReadSampleTestData | SingleReadSampleTestData"]
+        self, samples: list[PairedReadSampleTestData | SingleReadSampleTestData]
     ):
         with open(self.fastqc_list_path, "a") as f:
             for sample in samples:
@@ -106,7 +106,7 @@ class RunFolder:
                     + "\n"
                 )
 
-    def _write_demux_stats(self, samples: list["PairedReadSampleTestData"]):
+    def _write_demux_stats(self, samples: list[PairedReadSampleTestData]):
         with open(self.demultiplex_stats_path, "a") as f:
             for sample in samples:
                 f.write(
@@ -135,7 +135,7 @@ class RunFolder:
                     + "\n"
                 )
 
-    def _write_quality_metrics(self, samples: list["PairedReadSampleTestData"]):
+    def _write_quality_metrics(self, samples: list[PairedReadSampleTestData]):
         with open(self.quality_metrics_path, "a") as f:
             for sample in samples:
                 # Read 1
@@ -178,7 +178,7 @@ class RunFolder:
                         + "\n"
                     )
 
-    def write_samples(self, samples: list["PairedReadSampleTestData"]):
+    def write_samples(self, samples: list[PairedReadSampleTestData]):
         self._create_fastq_files(samples)
         self._write_fastqc_list(samples)
         self._write_demux_stats(samples)

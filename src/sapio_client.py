@@ -6,8 +6,6 @@ should inject a requests-like session when they need to avoid network
 calls.
 """
 
-from __future__ import annotations
-
 from typing import Any
 from uuid import UUID
 

@@ -76,7 +76,7 @@ class CombinedSampleData(BaseModel):
     quality_metrics_read2: QualityMetrics | None = None
 
     @model_validator(mode="after")
-    def check_consistency(self) -> "CombinedSampleData":
+    def check_consistency(self) -> CombinedSampleData:
         if self.fastq.sample_id != self.demux_stats.sample_id:
             raise ValueError("Sample ID mismatch between FastqListEntry and DemuxStats")
         if self.fastq.sample_id != self.quality_metrics_read1.sample_id:
@@ -95,7 +95,7 @@ class CombinedSampleData(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def num_fastq_files_consistency(self) -> "CombinedSampleData":
+    def num_fastq_files_consistency(self) -> CombinedSampleData:
         if self.fastq.read2_file is None and self.quality_metrics_read2 is not None:
             raise ValueError(
                 "QualityMetrics for Read 2 is present but Read 2 file is missing"
@@ -107,7 +107,7 @@ class CombinedSampleData(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_read_number(self) -> "CombinedSampleData":
+    def validate_read_number(self) -> CombinedSampleData:
         assert self.quality_metrics_read1.read_number == 1, (
             "Read number for quality_metrics_read1 must be 1"
         )
