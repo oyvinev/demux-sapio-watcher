@@ -6,14 +6,96 @@ should inject a requests-like session when they need to avoid network
 calls.
 """
 
-from typing import Any, TypeVar
+import logging
+from typing import Any, TypeVar, get_args
 from uuid import UUID
 
 import requests
+from pydantic import BaseModel
 
 from demux_sapio_watcher.sapio_types import SapioRecord, SequencingFile
 
+logger = logging.getLogger("demux-sapio-watcher")
+
 TSapioRecord = TypeVar("TSapioRecord", bound=SapioRecord)
+
+
+class VeloxFieldListResponse(BaseModel):
+    dataFieldType: str
+    dataFieldName: str
+
+    @property
+    def valid_pydantic_types(self) -> tuple[type, ...]:
+        """Return the corresponding Pydantic type for this field."""
+        mapping = {
+            "STRING": (str, UUID),
+            "INTEGER": (int,),
+            "LONG": (int,),
+            "DOUBLE": (float,),
+            "BOOLEAN": (bool,),
+            "DATE": (str,),
+            "IDENTIFIER": (str,),
+        }
+        return mapping[self.dataFieldType.upper()]
+
+
+def verify_sapio_record_datamodels(client: SapioClient) -> set[type[SapioRecord]]:
+    """Verify that all SapioRecord datamodels can be used with the given client."""
+
+    def recursive_subclasses(cls: type[SapioRecord]) -> list[type[SapioRecord]]:
+        """Return a list of all subclasses of the given class, recursively."""
+        subs = []
+        for subclass in cls.__subclasses__():
+            subs.append(subclass)
+            subs.extend(recursive_subclasses(subclass))
+        return subs
+
+    all_subclasses = recursive_subclasses(SapioRecord)
+    invalid_classes = set()
+    for cls in all_subclasses:
+        url = f"{client._url_base}/webservice/api/datatypemanager/veloxfieldlist/{cls.__name__}"
+        response = client._session.get(
+            url,
+            verify=False,
+        )
+        response.raise_for_status()
+        if response.status_code != 200:
+            invalid_classes.add(cls)
+            logger.error(
+                f"SapioRecord '{cls.__name__}' not found in Sapio (status code {response.status_code})"
+            )
+            continue
+        sapio_fields = [VeloxFieldListResponse(**item) for item in response.json()]
+        logger.debug(f"Available Sapio fields for '{cls.__name__}': {sapio_fields}")
+        logger.debug(f"Pydantic fields for '{cls.__name__}': {cls.model_fields}")
+        for field, field_info in cls.model_fields.items():
+            try:
+                matching_field = next(
+                    f
+                    for f in sapio_fields
+                    if f.dataFieldName == field or f.dataFieldName == field_info.alias
+                )
+            except StopIteration:
+                invalid_classes.add(cls)
+                logger.error(
+                    f"SapioRecord '{cls.__name__}' field '{field}' not found in Sapio"
+                )
+            field_annotation = set(get_args(field_info.annotation))
+
+            # Check if there is any overlap between the Sapio field type and the Pydantic field types
+            if not (field_annotation | set(matching_field.valid_pydantic_types)):
+                invalid_classes.add(cls)
+                logger.error(
+                    f"SapioRecord '{cls.__name__}' field '{field}' has incompatible types: "
+                    f"Sapio field type {matching_field.dataFieldType} "
+                    f"vs Pydantic types {field_annotation}"
+                )
+    if invalid_classes:
+        logger.error(
+            f"Found incompatible SapioRecord datamodels: "
+            f"{', '.join(cls.__name__ for cls in invalid_classes)}"
+        )
+    return invalid_classes
 
 
 class SapioClient:
@@ -46,10 +128,14 @@ class SapioClient:
         if app_key:
             headers["X-APP-KEY"] = app_key
         if api_token:
-            headers["Authorization"] = f"Bearer {api_token}"
+            headers["X-API-TOKEN"] = api_token
         # Allow session-level headers to be updated but preserve any user-provided
         # headers already set on the session.
         self._session.headers.update(headers)
+        if invalid_classes := verify_sapio_record_datamodels(self):
+            raise ValueError(
+                f"SapioRecord datamodels '{invalid_classes}' are incompatible with Sapio"
+            )
 
     def find_by_values(
         self, datatype: type[TSapioRecord], field_name: str, values: list[Any]
