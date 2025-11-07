@@ -1,10 +1,10 @@
 import logging
 from collections.abc import Generator
-from pathlib import Path
 
 from pydantic import ValidationError
 
 from demux_sapio_watcher.bclconvert.models import (
+    BCLConvertFolder,
     CombinedSampleData,
     DemuxStats,
     FastqListEntry,
@@ -12,34 +12,23 @@ from demux_sapio_watcher.bclconvert.models import (
 )
 
 logger = logging.getLogger(__name__)
-REQUIRED_BCLCONVERT_FILES = {
-    "Demultiplex_Stats": "fastq/Reports/Demultiplex_Stats.csv",
-    "Quality_Metrics": "fastq/Reports/Quality_Metrics.csv",
-    "fastq_list": "fastq/Reports/fastq_list.csv",
-}
 
 
 def parse_bclconvert_folder(
-    bclconvert_path: Path,
+    bclconvert_folder: BCLConvertFolder,
 ) -> Generator[CombinedSampleData]:
     """Parse the BCLConvert folder and return a dictionary with sample names as keys."""
-    # Check for required files
-    for file_desc, rel_path in REQUIRED_BCLCONVERT_FILES.items():
-        file_path = bclconvert_path / rel_path
-        if not file_path.exists():
-            raise FileNotFoundError(
-                f"Required file '{file_desc}' not found at {file_path}"
-            )
-
     combined_data: dict[str, dict] = {}
-    fastq_list_path = bclconvert_path / REQUIRED_BCLCONVERT_FILES["fastq_list"]
-    with fastq_list_path.open("r") as f:
+    # with fastq_list_path.open("r") as f:
+    with bclconvert_folder.fastq_list_path.open("r") as f:
         header = next(f).strip("\n").split(",")
         for line in f:
             fields = line.strip("\n").split(",")
             sample_info = dict(zip(header, fields))
             try:
-                fastq_entry = FastqListEntry(filename=fastq_list_path, **sample_info)
+                fastq_entry = FastqListEntry(
+                    file=bclconvert_folder.fastq_list_path, **sample_info
+                )
             except ValidationError as e:
                 logger.error(f"Error parsing FastqListEntry: {e}")
                 continue
@@ -49,7 +38,7 @@ def parse_bclconvert_folder(
                 )
             combined_data[fastq_entry.sample_id] = {"fastq": fastq_entry}
 
-    with open(bclconvert_path / REQUIRED_BCLCONVERT_FILES["Demultiplex_Stats"]) as f:
+    with bclconvert_folder.demultiplex_stats_path.open("r") as f:
         header = next(f).strip("\n").split(",")
         for line in f:
             fields = line.strip("\n").split(",")
@@ -69,7 +58,7 @@ def parse_bclconvert_folder(
 
             combined_data[demux_entry.sample_id]["demux_stats"] = demux_entry
 
-    with open(bclconvert_path / REQUIRED_BCLCONVERT_FILES["Quality_Metrics"]) as f:
+    with bclconvert_folder.quality_metrics_path.open("r") as f:
         header = next(f).strip("\n").split(",")
         for line in f:
             fields = line.strip("\n").split(",")

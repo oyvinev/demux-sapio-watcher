@@ -1,8 +1,19 @@
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import pytest
+
 from demux_sapio_watcher.sapio_client import SapioClient
 from demux_sapio_watcher.sapio_types import SapioRecord
+
+
+@pytest.fixture(autouse=True)
+def mock_get_invalid_sapiorecords(monkeypatch):
+    mock_fn = MagicMock(return_value=set())
+    monkeypatch.setattr(
+        "demux_sapio_watcher.sapio_client.get_invalid_sapiorecords", mock_fn
+    )
+    return mock_fn
 
 
 def make_fake_response(result_list):

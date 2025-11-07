@@ -39,7 +39,7 @@ class VeloxFieldListResponse(BaseModel):
         return mapping[self.dataFieldType.upper()]
 
 
-def verify_sapio_record_datamodels(client: SapioClient) -> set[type[SapioRecord]]:
+def get_invalid_sapiorecords(client: SapioClient) -> set[type[SapioRecord]]:
     """Verify that all SapioRecord datamodels can be used with the given client."""
 
     def recursive_subclasses(cls: type[SapioRecord]) -> list[type[SapioRecord]]:
@@ -132,7 +132,7 @@ class SapioClient:
         # Allow session-level headers to be updated but preserve any user-provided
         # headers already set on the session.
         self._session.headers.update(headers)
-        if invalid_classes := verify_sapio_record_datamodels(self):
+        if invalid_classes := get_invalid_sapiorecords(self):
             raise ValueError(
                 f"SapioRecord datamodels '{invalid_classes}' are incompatible with Sapio"
             )

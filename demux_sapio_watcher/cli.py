@@ -27,6 +27,7 @@ def cli(argv: list[str]) -> None:
     parser = argparse.ArgumentParser(prog="fastq-watcher")
     parser.add_argument("root_paths", nargs="+", help="root paths to search")
     parser.add_argument("--exclude-patterns", nargs="+", help="patterns to exclude")
+    parser.add_argument("--include-patterns", nargs="+", help="patterns to include")
     parser.add_argument(
         "--dry-run", action="store_true", help="Don't update Sapio, just log actions"
     )
@@ -108,7 +109,9 @@ def cli(argv: list[str]) -> None:
     logger.info("Looking for BclConvert folders")
     logger.debug(f"Root paths: {args.root_paths}")
     for bcl_convert_folder in find_bclconvert_folders(
-        args.root_paths, exclude_patterns=args.exclude_patterns
+        args.root_paths,
+        include_patterns=args.include_patterns,
+        exclude_patterns=args.exclude_patterns,
     ):
         logger.debug(f"Processing BclConvert folder: {bcl_convert_folder}")
         it = parse_bclconvert_folder(bcl_convert_folder)

@@ -1,14 +1,78 @@
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-from pydantic.types import FilePath
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
+from pydantic.types import DirectoryPath, FilePath
+
+
+class BCLConvertFolder(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    path: DirectoryPath
+    demultiplex_stats_path: FilePath
+    quality_metrics_path: FilePath
+    fastq_list_path: FilePath
+
+    @field_validator(
+        "demultiplex_stats_path",
+        "quality_metrics_path",
+        "fastq_list_path",
+        mode="after",
+    )
+    def resolve_paths(cls, v: Path) -> Path:
+        """Ensure paths are absolute."""
+        return v.resolve()
+
+    @classmethod
+    def from_path(cls, path: Path) -> BCLConvertFolder:
+        """Create a BCLConvertFolder from a given path."""
+        # Are there other possible locations for these files?
+        valid_subpaths = {
+            "Demultiplex_Stats.csv": (
+                path / "Demultiplex_Stats.csv",
+                path / "Demux/Demultiplex_Stats.csv",
+                path / "BCLConvert/fastq/Reports/Demultiplex_Stats.csv",
+            ),
+            "Quality_Metrics.csv": (
+                path / "Quality_Metrics.csv",
+                path / "Demux/Quality_Metrics.csv",
+                path / "BCLConvert/fastq/Reports/Quality_Metrics.csv",
+            ),
+            "fastq_list.csv": (
+                path / "fastq_list.csv",
+                path / "Demux/fastq_list.csv",
+                path / "BCLConvert/fastq/Reports/fastq_list.csv",
+            ),
+        }
+
+        demultiplex_stats_path = next(
+            (f for f in valid_subpaths["Demultiplex_Stats.csv"] if f.is_file()),
+            None,
+        )
+        quality_metrics_path = next(
+            (f for f in valid_subpaths["Quality_Metrics.csv"] if f.is_file()),
+            None,
+        )
+        fastq_list_path = next(
+            (f for f in valid_subpaths["fastq_list.csv"] if f.is_file()), None
+        )
+        return cls(
+            path=path,
+            demultiplex_stats_path=demultiplex_stats_path,
+            quality_metrics_path=quality_metrics_path,
+            fastq_list_path=fastq_list_path,
+        )
 
 
 class QualityMetrics(BaseModel):
     lane: int = Field(..., alias="Lane")
     sample_id: str = Field(..., alias="SampleID")
-    sample_project: str = Field(..., alias="Sample_Project")
+    # sample_project: str = Field(..., alias="Sample_Project")
     index: str = Field(..., alias="index")
     index2: str = Field(..., alias="index2")
     read_number: int = Field(..., alias="ReadNumber")
@@ -22,7 +86,7 @@ class QualityMetrics(BaseModel):
 class DemuxStats(BaseModel):
     lane: int = Field(..., alias="Lane")
     sample_id: str = Field(..., alias="SampleID")
-    sample_project: str = Field(..., alias="Sample_Project")
+    # sample_project: str = Field(..., alias="Sample_Project")
     index: str = Field(..., alias="Index")
     num_reads: int = Field(..., alias="# Reads")
     num_perfect_index_reads: int = Field(..., alias="# Perfect Index Reads")
@@ -39,7 +103,7 @@ class DemuxStats(BaseModel):
 
 
 class FastqListEntry(BaseModel):
-    filename: FilePath
+    file: FilePath
     read_group: str = Field(..., alias="RGID")
     sample_id: str = Field(..., alias="RGSM")
     library: str = Field(..., alias="RGLB")
@@ -56,9 +120,9 @@ class FastqListEntry(BaseModel):
     @model_validator(mode="after")
     def check_read2_file(self):
         if not self.read1_file.is_absolute():
-            self.read1_file = (self.filename.parent / self.read1_file).resolve()
+            self.read1_file = (self.file.parent / self.read1_file).resolve()
         if self.read2_file and not self.read2_file.is_absolute():
-            self.read2_file = (self.filename.parent / self.read2_file).resolve()
+            self.read2_file = (self.file.parent / self.read2_file).resolve()
 
         if self.read1_file == self.read2_file:
             raise ValueError("Read1File and Read2File cannot be the same")
