@@ -91,17 +91,13 @@ def cli(argv: list[str]) -> None:
 
     # If API token is provided, prefer it and don't send username/password.
     if not args.no_sapio:
-        if args.api_token:
-            client = SapioClient(
-                api_token=args.api_token, url_base=args.url_base, app_key=args.app_key
-            )
-        else:
-            client = SapioClient(
-                url_base=args.url_base,
-                app_key=args.app_key,
-                # username=args.username,
-                # password=args.password,
-            )
+        client = SapioClient(
+            url_base=args.url_base,
+            app_key=args.app_key,
+            username=args.username,
+            password=args.password,
+            api_token=args.api_token,
+        )
     else:
         logger.debug("Mocking Sapio, --no-sapio specified")
         client = MagicMock()

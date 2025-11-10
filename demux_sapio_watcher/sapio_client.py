@@ -12,6 +12,7 @@ from uuid import UUID
 
 import requests
 from pydantic import BaseModel
+from requests.auth import HTTPBasicAuth
 
 from demux_sapio_watcher.sapio_types import SapioRecord, SequencingFile
 
@@ -112,6 +113,8 @@ class SapioClient:
         api_token: str | None = None,
         url_base: str | None = None,
         app_key: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
         http_session: requests.Session | None = None,
     ) -> None:
         # Remember base URL
@@ -128,7 +131,14 @@ class SapioClient:
         if app_key:
             headers["X-APP-KEY"] = app_key
         if api_token:
+            if username or password:
+                logger.warning(
+                    "Both API token and username/password provided; using API token"
+                )
             headers["X-API-TOKEN"] = api_token
+        elif username and password:
+            # Use basic auth header
+            self._session.auth = HTTPBasicAuth(username, password)
         # Allow session-level headers to be updated but preserve any user-provided
         # headers already set on the session.
         self._session.headers.update(headers)
