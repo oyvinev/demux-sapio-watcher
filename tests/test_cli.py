@@ -27,7 +27,15 @@ def test_cli_updates_sapio(sample: PairedReadSampleTestData):
 
         # Provide a dummy API token so the CLI validation accepts authentication
         # Run — DummyClient asserts update was called; logging is side-effect only.
-        cli.main(["--api-token", "dummy-token", rf.root.as_posix()])
+        cli.main(
+            [
+                "--url-base",
+                "http://not-used",
+                "--api-token",
+                "dummy-token",
+                rf.root.as_posix(),
+            ]
+        )
 
         # Assert the client methods were called as expected
         client_mock.find_sequencingfile_by_uuid.assert_called_once()
@@ -62,7 +70,15 @@ def test_cli_processes_all_samples(samples: list[PairedReadSampleTestData]):
 
         # Provide a dummy API token so the CLI validation accepts authentication
         # Run — DummyClient asserts update was called; logging is side-effect only.
-        cli.main(["--api-token", "dummy-token", rf.root.as_posix()])
+        cli.main(
+            [
+                "--url-base",
+                "http://not-used",
+                "--api-token",
+                "dummy-token",
+                rf.root.as_posix(),
+            ]
+        )
         assert client_mock.find_sequencingfile_by_uuid.call_count == len(samples)
         assert client_mock.update_record.call_count == len(samples)
 
@@ -89,6 +105,14 @@ def test_cli_does_not_update_non_existing_sapio_records(
         # Patch the CLI to use our mock client instance
         mp.setattr(cli, "SapioClient", lambda *a, **k: client_mock)
 
-        cli.main(["--api-token", "dummy-token", rf.root.as_posix()])
+        cli.main(
+            [
+                "--url-base",
+                "http://not-used",
+                "--api-token",
+                "dummy-token",
+                rf.root.as_posix(),
+            ]
+        )
         assert client_mock.find_sequencingfile_by_uuid.call_count == len(samples)
         client_mock.update_record.assert_not_called()
