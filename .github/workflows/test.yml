@@ -1,0 +1,40 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install dependencies
+      run: uv sync --all-groups
+
+    - name: Run tests
+      run: uv run pytest
+
+    - name: Run linting
+      run: uv run ruff check .
+
+    - name: Run type checking
+      run: uv run mypy .
+
+    - name: Build Docker image
+      run: docker build -t demux-sapio-watcher .
+
+    - name: Run tests in Docker
+      run: docker run --entrypoint pytest --rm demux-sapio-watcher -sv
