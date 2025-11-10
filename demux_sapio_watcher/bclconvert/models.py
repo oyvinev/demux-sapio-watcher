@@ -5,6 +5,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
@@ -14,19 +15,23 @@ from pydantic.types import DirectoryPath, FilePath
 class BCLConvertFolder(BaseModel):
     model_config = ConfigDict(frozen=True)
     path: DirectoryPath
-    demultiplex_stats_path: FilePath
-    quality_metrics_path: FilePath
-    fastq_list_path: FilePath
+    demultiplex_stats_paths: tuple[FilePath, ...]
+    quality_metrics_paths: tuple[FilePath, ...]
+    fastq_list_paths: tuple[FilePath, ...]
 
     @field_validator(
-        "demultiplex_stats_path",
-        "quality_metrics_path",
-        "fastq_list_path",
+        "demultiplex_stats_paths",
+        "quality_metrics_paths",
+        "fastq_list_paths",
         mode="after",
     )
-    def resolve_paths(cls, v: Path) -> Path:
+    def resolve_paths(
+        cls, v: tuple[Path, ...], info: ValidationInfo
+    ) -> tuple[Path, ...]:
         """Ensure paths are absolute."""
-        return v.resolve()
+        if not len(v) > 0:
+            raise ValueError(f"Missing file for '{info.field_name}")
+        return tuple(p.resolve() for p in v)
 
     @classmethod
     def from_path(cls, path: Path) -> BCLConvertFolder:
@@ -37,35 +42,34 @@ class BCLConvertFolder(BaseModel):
                 path / "Demultiplex_Stats.csv",
                 path / "Demux/Demultiplex_Stats.csv",
                 path / "BCLConvert/fastq/Reports/Demultiplex_Stats.csv",
+                path / "BCLConvert/ora_fastq/Reports/Demultiplex_Stats.csv",
             ),
             "Quality_Metrics.csv": (
                 path / "Quality_Metrics.csv",
                 path / "Demux/Quality_Metrics.csv",
                 path / "BCLConvert/fastq/Reports/Quality_Metrics.csv",
+                path / "BCLConvert/ora_fastq/Reports/Quality_Metrics.csv",
             ),
             "fastq_list.csv": (
                 path / "fastq_list.csv",
                 path / "Demux/fastq_list.csv",
                 path / "BCLConvert/fastq/Reports/fastq_list.csv",
+                path / "BCLConvert/ora_fastq/Reports/fastq_list.csv",
             ),
         }
 
-        demultiplex_stats_path = next(
-            (f for f in valid_subpaths["Demultiplex_Stats.csv"] if f.is_file()),
-            None,
+        demultiplex_stats_paths = (
+            f for f in valid_subpaths["Demultiplex_Stats.csv"] if f.is_file()
         )
-        quality_metrics_path = next(
-            (f for f in valid_subpaths["Quality_Metrics.csv"] if f.is_file()),
-            None,
+        quality_metrics_paths = (
+            f for f in valid_subpaths["Quality_Metrics.csv"] if f.is_file()
         )
-        fastq_list_path = next(
-            (f for f in valid_subpaths["fastq_list.csv"] if f.is_file()), None
-        )
+        fastq_list_paths = (f for f in valid_subpaths["fastq_list.csv"] if f.is_file())
         return cls(
             path=path,
-            demultiplex_stats_path=demultiplex_stats_path,
-            quality_metrics_path=quality_metrics_path,
-            fastq_list_path=fastq_list_path,
+            demultiplex_stats_paths=demultiplex_stats_paths,
+            quality_metrics_paths=quality_metrics_paths,
+            fastq_list_paths=fastq_list_paths,
         )
 
 

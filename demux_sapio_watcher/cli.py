@@ -108,13 +108,17 @@ def cli(argv: list[str]) -> None:
 
     logger.info("Looking for BclConvert folders")
     logger.debug(f"Root paths: {args.root_paths}")
+    total_parsed_samples = 0
+    total_processed_folders = 0
     for bcl_convert_folder in find_bclconvert_folders(
         args.root_paths,
         include_patterns=args.include_patterns,
         exclude_patterns=args.exclude_patterns,
     ):
         logger.debug(f"Processing BclConvert folder: {bcl_convert_folder}")
+        total_processed_folders += 1
         it = parse_bclconvert_folder(bcl_convert_folder)
+        num_parsed_samples = 0
         while True:
             try:
                 sample_data = next(it)
@@ -123,6 +127,7 @@ def cli(argv: list[str]) -> None:
             except Exception as e:
                 logger.warning(f"Failed to parse sample data: {e}")
                 continue
+            num_parsed_samples += 1
 
             sequencing_file = SequencingFile.from_bclconvert(sample_data)
             uuid = sequencing_file.sample_guid
@@ -139,6 +144,12 @@ def cli(argv: list[str]) -> None:
             sequencing_file.record_id = record.record_id
             client.update_record(sequencing_file)
             # logger.info("Updated SequencingFile %s with R1=%s R2=%s", uuid, r1, r2)
+        logger.info(
+            f"Processed {num_parsed_samples} samples in {bcl_convert_folder.path}"
+        )
+        total_parsed_samples += num_parsed_samples
+    logger.info(f"Total processed BCLConvert folders: {total_processed_folders}")
+    logger.info(f"Total parsed samples: {total_parsed_samples}")
     logger.info("Done")
 
 

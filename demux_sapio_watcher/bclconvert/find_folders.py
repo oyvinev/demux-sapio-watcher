@@ -33,6 +33,8 @@ def filter_folders(
         List of Path objects for folders that match criteria
     """
     filtered_folders = []
+    include_patterns = include_patterns or ["*"]
+    exclude_patterns = exclude_patterns or []
     if not root_path.exists():
         logger.warning(f"Root path {root_path} does not exist")
         return []
@@ -40,13 +42,12 @@ def filter_folders(
         logger.warning(f"Root path {root_path} is not a directory")
         return []
     if not _top_level:
-        included = matches(str(root_path), include_patterns or ["*"])
-        if included:
-            filtered_folders.append(root_path.resolve())
+        excluded = matches(str(root_path), exclude_patterns)
+        if not excluded:
+            included = matches(str(root_path), include_patterns)
+            if included:
+                filtered_folders.append(root_path.resolve())
         _top_level = root_path
-
-    include_patterns = include_patterns or ["*"]
-    exclude_patterns = exclude_patterns or []
 
     # Get all direct subdirectories
     for item in root_path.iterdir():
