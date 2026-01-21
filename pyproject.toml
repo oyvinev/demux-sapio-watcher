@@ -3,7 +3,6 @@ name = "demux-sapio-watcher"
 version = "0.0.1"
 requires-python = ">=3.14"
 dependencies = [
-  "hypothesis>=6.140.3",
   "pydantic>=2.12.0",
   "requests==2.32.5",
 ]
@@ -13,6 +12,7 @@ demux-sapio-watcher = "demux_sapio_watcher.cli:main"
 
 [dependency-groups]
 dev = [
+  "hypothesis>=6.140.3",
   "ruff>=0.14.0",
   "pytest==8.4.2",
   "coverage==7.10.7",

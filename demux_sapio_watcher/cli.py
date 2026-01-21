@@ -24,7 +24,7 @@ if not logger.handlers:
 
 
 def cli(argv: list[str]) -> None:
-    parser = argparse.ArgumentParser(prog="fastq-watcher")
+    parser = argparse.ArgumentParser(prog="demux-sapio-watcher")
     parser.add_argument("root_paths", nargs="+", help="root paths to search")
     parser.add_argument("--exclude-patterns", nargs="+", help="patterns to exclude")
     parser.add_argument("--include-patterns", nargs="+", help="patterns to include")

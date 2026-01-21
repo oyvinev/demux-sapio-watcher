@@ -82,12 +82,15 @@ The following environment variables can be used instead of command-line options:
 ### Command Line Options
 
 ```
-usage: fastq-watcher [-h] [--exclude-patterns EXCLUDE_PATTERNS [EXCLUDE_PATTERNS ...]]
-                     [--include-patterns INCLUDE_PATTERNS [INCLUDE_PATTERNS ...]] [--dry-run]
-                     [--api-token API_TOKEN] [--url-base URL_BASE] [--app-key APP_KEY]
-                     [--username USERNAME] [--password PASSWORD]
-                     [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--no-sapio]
-                     root_paths [root_paths ...]
+usage: demux-sapio-watcher [-h]
+                           [--exclude-patterns EXCLUDE_PATTERNS [EXCLUDE_PATTERNS ...]]
+                           [--include-patterns INCLUDE_PATTERNS [INCLUDE_PATTERNS ...]]
+                           [--dry-run] [--api-token API_TOKEN]
+                           [--url-base URL_BASE] [--app-key APP_KEY]
+                           [--username USERNAME] [--password PASSWORD]
+                           [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                           [--no-sapio]
+                           root_paths [root_paths ...]
 
 positional arguments:
   root_paths            root paths to search
