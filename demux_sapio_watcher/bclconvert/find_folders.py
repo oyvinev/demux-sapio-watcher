@@ -94,6 +94,20 @@ def find_bclconvert_folders(
             include_patterns=include_patterns,
             exclude_patterns=exclude_patterns,
         ):
+            bcl_convert = folder / "BCLConvert"
+
+            if not bcl_convert.is_dir():
+                continue
+
+            # Marker for a completed demultiplexed folder.
+            # One of these should be present for the folder to be included, otherwise we treat it as not yet completely demultiplexed
+            valid_marker_files = (
+                bcl_convert / "../../CopyComplete.txt",
+                bcl_convert / "fastq/Logs/FastqComplete.txt",
+            )
+            if not any(f.is_file() for f in valid_marker_files):
+                continue
+
             if (folder / "BCLConvert").is_dir():
                 try:
                     bcl_convert_folders.add(BCLConvertFolder.from_path(folder))

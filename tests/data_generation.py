@@ -1,7 +1,7 @@
 from pathlib import Path
 from uuid import UUID
-import hypothesis.strategies as st
 
+import hypothesis.strategies as st
 from pydantic import BaseModel, computed_field
 
 
@@ -66,6 +66,14 @@ class RunFolder:
                 )
                 + "\n"
             )
+
+        # Write marker file
+        marker_file = Path(
+            self.root, "Analysis/1/Data/BCLConvert/fastq/Logs/FastqComplete.txt"
+        )
+        marker_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(marker_file, "w") as f:
+            f.write("Fastq generation complete.\n")
 
     def _create_fastq_files(
         self, samples: list[PairedReadSampleTestData] | list[SingleReadSampleTestData]

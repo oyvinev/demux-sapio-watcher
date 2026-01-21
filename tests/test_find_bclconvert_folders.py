@@ -18,11 +18,18 @@ def test_find_bclconvert_folders():
         (another_bclconvert / "../Demultiplex_Stats.csv").touch()
         (another_bclconvert / "../Quality_Metrics.csv").touch()
         (another_bclconvert / "../fastq_list.csv").touch()
+        (another_bclconvert / "../../CopyComplete.txt").touch()
 
         incomplete_bclconvert = Path(rf.root, "Incomplete", "Folder", "BCLConvert")
         incomplete_bclconvert.mkdir(parents=True, exist_ok=True)
         (incomplete_bclconvert / "../Demultiplex_Stats.csv").touch()
         (incomplete_bclconvert / "../Quality_Metrics.csv").touch()
+
+        no_marker_bclconvert = Path(rf.root, "NoMarker", "Folder", "BCLConvert")
+        no_marker_bclconvert.mkdir(parents=True, exist_ok=True)
+        (no_marker_bclconvert / "../Demultiplex_Stats.csv").touch()
+        (no_marker_bclconvert / "../Quality_Metrics.csv").touch()
+        (no_marker_bclconvert / "../fastq_list.csv").touch()
 
         folders = list(find_bclconvert_folders([Path(rf.root)]))
         assert len(folders) == 2
@@ -54,6 +61,7 @@ def test_find_bclconvert_folders_basic(tmp_path: Path):
         (folder / "../Demultiplex_Stats.csv").touch()
         (folder / "../Quality_Metrics.csv").touch()
         (folder / "../fastq_list.csv").touch()
+        (folder / "../../CopyComplete.txt").touch()
 
     # Test finding BCLConvert folders
     root_paths = [tmp_path / "run1", tmp_path / "run2", tmp_path / "run3"]
@@ -84,6 +92,7 @@ def test_find_bclconvert_folders_with_excludes(tmp_path: Path):
         (folder / "../Demultiplex_Stats.csv").touch()
         (folder / "../Quality_Metrics.csv").touch()
         (folder / "../fastq_list.csv").touch()
+        (folder / "../../CopyComplete.txt").touch()
 
     # Test with exclude patterns
     # root_paths = [tmp_path / "run1", tmp_path / "processed", tmp_path / "backup"]
@@ -104,6 +113,7 @@ def test_find_bclconvert_folders_empty_roots(tmp_path: Path):
     (bcl_folder / "../Demultiplex_Stats.csv").touch()
     (bcl_folder / "../Quality_Metrics.csv").touch()
     (bcl_folder / "../fastq_list.csv").touch()
+    (bcl_folder / "../../CopyComplete.txt").touch()
 
     # Create empty directory
     (tmp_path / "empty").mkdir()
@@ -155,6 +165,7 @@ def test_find_bclconvert_folders_case_sensitive(tmp_path: Path):
         (folder / "../Demultiplex_Stats.csv").touch()
         (folder / "../Quality_Metrics.csv").touch()
         (folder / "../fastq_list.csv").touch()
+        (folder / "../../CopyComplete.txt").touch()
 
     root_paths = [tmp_path / "run1", tmp_path / "run2", tmp_path / "run3"]
     bcl_folders = find_bclconvert_folders(root_paths)
