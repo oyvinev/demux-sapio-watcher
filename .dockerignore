@@ -1,0 +1,7 @@
+.hypothesis
+.pytest_cache
+__pycache__
+.ruff_cache
+mnt
+dummy-data
+*.tar
