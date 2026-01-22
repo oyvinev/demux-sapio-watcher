@@ -1,7 +1,9 @@
-from types import SimpleNamespace
+# from types import SimpleNamespace
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import hypothesis as ht
+from pydantic import BaseModel, ConfigDict
 from pytest import MonkeyPatch
 
 from demux_sapio_watcher import cli
@@ -12,6 +14,13 @@ from tests.data_generation import (
     build_paired_read_sample,
     build_samples,
 )
+
+
+class SimpleNamespace(BaseModel):
+    record_id: int
+    uuid: UUID
+
+    model_config = ConfigDict(extra="allow")
 
 
 @ht.given(build_paired_read_sample())
@@ -116,3 +125,56 @@ def test_cli_does_not_update_non_existing_sapio_records(
         )
         assert client_mock.find_sequencingfile_by_uuid.call_count == len(samples)
         client_mock.update_record.assert_not_called()
+
+
+@ht.given(build_samples())
+def test_cli_does_not_update_already_updated_records(
+    samples: list[PairedReadSampleTestData],
+):
+    with runfolder(samples) as rf, MonkeyPatch().context() as mp:
+        # Use a MagicMock for SapioClient so we can assert calls directly.
+        client_mock = MagicMock()
+        record_objs = {
+            sample.uuid: SimpleNamespace(record_id=1, uuid=sample.uuid)
+            for sample in samples
+        }
+        client_mock.find_sequencingfile_by_uuid.side_effect = lambda uuid: record_objs[
+            uuid
+        ]
+
+        # Patch the CLI to use our mock client instance
+        mp.setattr(cli, "SapioClient", lambda *a, **k: client_mock)
+
+        cli.main(
+            [
+                "--url-base",
+                "http://not-used",
+                "--api-token",
+                "dummy-token",
+                rf.root.as_posix(),
+            ]
+        )
+        assert client_mock.find_sequencingfile_by_uuid.call_count == len(samples)
+
+        # Extract the SequencingFile instances passed to update_record
+        update_records = [arg[0][0] for arg in client_mock.update_record.call_args_list]
+        assert len(update_records) == len(samples)
+
+        # Now, run it again, simulating that the records are already updated
+        client_mock2 = MagicMock()
+        client_mock2.find_sequencingfile_by_uuid.side_effect = lambda uuid: next(
+            r for r in update_records if r.sample_guid == uuid
+        )
+        mp.setattr(cli, "SapioClient", lambda *a, **k: client_mock2)
+        cli.main(
+            [
+                "--url-base",
+                "http://not-used",
+                "--api-token",
+                "dummy-token",
+                rf.root.as_posix(),
+            ]
+        )
+        assert client_mock2.find_sequencingfile_by_uuid.call_count == len(samples)
+        # Ensure update_record was not called again
+        client_mock2.update_record.assert_not_called()

@@ -137,7 +137,11 @@ def cli(argv: list[str]) -> None:
             if record is None:
                 logger.warning(f"UUID {uuid} not found in Sapio")
                 continue
+
             sequencing_file.record_id = record.record_id
+            if sequencing_file == record:
+                logger.info(f"SequencingFile {uuid} is already up to date in Sapio")
+                continue
             client.update_record(sequencing_file)
             # logger.info("Updated SequencingFile %s with R1=%s R2=%s", uuid, r1, r2)
         logger.info(
