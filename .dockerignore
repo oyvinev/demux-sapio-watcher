@@ -1,7 +1,12 @@
 .hypothesis
 .pytest_cache
-__pycache__
+**/__pycache__
 .ruff_cache
+.venv
+.mypy_cache
+.devcontainer
+.git
+.github
 mnt
 dummy-data
 *.tar
