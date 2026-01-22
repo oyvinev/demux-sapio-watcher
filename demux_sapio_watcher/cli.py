@@ -123,9 +123,15 @@ def cli(argv: list[str]) -> None:
             except Exception as e:
                 logger.warning(f"Failed to parse sample data: {e}")
                 continue
+            try:
+                sequencing_file = SequencingFile.from_bclconvert(sample_data)
+            except Exception as e:
+                logger.error(
+                    f"Failed to create sequencing file from {sample_data}:\n{e}"
+                )
+                continue
             num_parsed_samples += 1
 
-            sequencing_file = SequencingFile.from_bclconvert(sample_data)
             uuid = sequencing_file.sample_guid
             if args.dry_run:
                 logger.info(
