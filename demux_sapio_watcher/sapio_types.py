@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from demux_sapio_watcher.bclconvert.models import CombinedSampleData, QualityMetrics
 
@@ -23,7 +23,9 @@ class SapioRecord(BaseModel):
         return {
             "dataTypeName": self.__class__.__name__,
             "recordId": self.record_id,
-            "fields": self.model_dump(by_alias=True, exclude={"record_id"}),
+            "fields": self.model_dump(
+                mode="json", by_alias=True, exclude={"record_id"}
+            ),
             "deleted": deleted,
             "new": new,
         }
@@ -88,6 +90,18 @@ class SequencingFile(SapioRecord):
         None,
         description="Quality score sum / yield",
     )
+
+    @field_validator(
+        "fastq_path_R1",
+        "fastq_path_R2",
+        "fastq_path_I1",
+        "fastq_path_I2",
+        mode="before",
+    )
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
     @computed_field
     @property

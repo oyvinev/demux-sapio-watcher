@@ -54,7 +54,7 @@ def get_invalid_sapiorecords(client: SapioClient) -> set[type[SapioRecord]]:
     all_subclasses = recursive_subclasses(SapioRecord)
     invalid_classes = set()
     for cls in all_subclasses:
-        url = f"{client._url_base}/webservice/api/datatypemanager/veloxfieldlist/{cls.__name__}"
+        url = f"{client._api_base}/datatypemanager/veloxfieldlist/{cls.__name__}"
         response = client._session.get(
             url,
             verify=False,
@@ -122,6 +122,7 @@ class SapioClient:
             raise ValueError("Sapio URL (url_base) is required")
         # Normalize base url (strip trailing slash)
         self._url_base = url_base.rstrip("/")
+        self._api_base = self._url_base + "/webservice/api"
 
         # Prepare HTTP session for REST calls
         self._session = http_session or requests.Session()
@@ -158,7 +159,7 @@ class SapioClient:
         """
         if not issubclass(datatype, SapioRecord):
             raise ValueError("datatype must be a SapioRecord subclass")
-        endpoint = f"{self._url_base}/datarecordmanager/querydatarecords"
+        endpoint = f"{self._api_base}/datarecordmanager/querydatarecords"
         params: dict[str, int | str] = {
             "dataTypeName": datatype.__name__,
             "dataFieldName": field_name,
@@ -174,12 +175,12 @@ class SapioClient:
         results = data.get("resultList") if isinstance(data, dict) else None
         if not results:
             return []
-        return [datatype.model_validate(r) for r in results]
+        return [datatype.model_validate(r["fields"]) for r in results]
 
     def update_record(self, record: SapioRecord) -> None:
         """Update fields on the given DataRecord and commit."""
 
-        endpoint = f"{self._url_base}/datarecordlist/fields"
+        endpoint = f"{self._api_base}/datarecordlist/fields"
         resp = self._session.put(endpoint, json=[record.update_payload()])
         resp.raise_for_status()
 
