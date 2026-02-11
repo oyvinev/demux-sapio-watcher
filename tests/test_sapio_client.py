@@ -33,10 +33,12 @@ def make_fake_response(result_list):
 def test_find_by_uuid():
     uuid = uuid4()
     fake_record = {
-        "RecordId": 2,
-        "SampleGuid": str(uuid),
-        "dataTypeName": "SequencingFile",
-        "AllFilesAvailable": False,
+        "fields": {
+            "RecordId": 2,
+            "SampleGuid": str(uuid),
+            "dataTypeName": "SequencingFile",
+            "AllFilesAvailable": False,
+        }
     }
     fake_session = MagicMock()
     fake_session.post = MagicMock(return_value=make_fake_response([fake_record]))
