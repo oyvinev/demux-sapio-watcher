@@ -67,6 +67,11 @@ def cli(argv: list[str]) -> None:
         action="store_true",
         help="Do not call Sapio API at all",
     )
+    parser.add_argument(
+        "--verify-certificates",
+        action="store_true",
+        help="Enable TLS certificate verification for Sapio API connections",
+    )
     args = parser.parse_args(argv)
 
     args.root_paths = [Path(p).resolve() for p in args.root_paths]
@@ -97,6 +102,7 @@ def cli(argv: list[str]) -> None:
             username=args.username,
             password=args.password,
             api_token=args.api_token,
+            verify_certificates=args.verify_certificates,
         )
     else:
         logger.debug("Mocking Sapio, --no-sapio specified")
