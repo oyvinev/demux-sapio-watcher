@@ -178,12 +178,16 @@ class SequencingFile(SapioRecord):
             AllFilesAvailable=True,  # If we have a CombinedSampleData object, then this is True
             # QC metrics from demux stats:
             readsPf=combined_data.demux_stats.num_reads,
-            perfectIndexReadPercent=combined_data.demux_stats.percent_perfect_index_reads,
-            oneMismatchIndexReadPercent=combined_data.demux_stats.percent_one_mismatch_index_reads,
-            pfClustersPercentPerLane=combined_data.demux_stats.percent_reads,
+            perfectIndexReadPercent=100
+            * combined_data.demux_stats.percent_perfect_index_reads,
+            oneMismatchIndexReadPercent=100
+            * combined_data.demux_stats.percent_one_mismatch_index_reads,
+            pfClustersPercentPerLane=100 * combined_data.demux_stats.percent_reads,
             # Combined qc metrics from qc1 and qc2
             yieldPfGb=(qc1.yield_ + qc2.yield_) / 1_000_000_000,
-            basesQ30Percent=(qc1.yield_q30 + qc2.yield_q30) / (qc1.yield_ + qc2.yield_),
+            basesQ30Percent=100
+            * (qc1.yield_q30 + qc2.yield_q30)
+            / (qc1.yield_ + qc2.yield_),
             averageQScore=(qc1.quality_score_sum + qc2.quality_score_sum)
             / (qc1.yield_ + qc2.yield_),
         )
