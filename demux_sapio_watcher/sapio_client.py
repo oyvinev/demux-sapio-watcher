@@ -57,7 +57,7 @@ def get_invalid_sapiorecords(client: SapioClient) -> set[type[SapioRecord]]:
         url = f"{client._api_base}/datatypemanager/veloxfieldlist/{cls.__name__}"
         response = client._session.get(
             url,
-            verify=False,
+            verify=client._verify_certificates,
         )
         response.raise_for_status()
         if response.status_code != 200:
@@ -115,6 +115,7 @@ class SapioClient:
         app_key: str | None = None,
         username: str | None = None,
         password: str | None = None,
+        verify_certificates: bool = False,
         http_session: requests.Session | None = None,
     ) -> None:
         # Remember base URL
@@ -126,6 +127,8 @@ class SapioClient:
 
         # Prepare HTTP session for REST calls
         self._session = http_session or requests.Session()
+        self._verify_certificates = verify_certificates
+        self._session.verify = verify_certificates
         # Configure headers based on token/app_key etc.
         # X-APP-KEY is required when multiple apps are hosted on the same domain.
         headers = {}

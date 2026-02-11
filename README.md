@@ -49,7 +49,8 @@ demux-sapio-watcher /path/to/data \
 demux-sapio-watcher /path/to/data \
     --api-token YOUR_API_TOKEN \
     --url-base https://your-sapio-instance.com \
-    --app-key YOUR_APP_KEY
+    --app-key YOUR_APP_KEY \
+    --verify-certificates
 ```
 
 ### Docker Usage
@@ -89,7 +90,7 @@ usage: demux-sapio-watcher [-h]
                            [--url-base URL_BASE] [--app-key APP_KEY]
                            [--username USERNAME] [--password PASSWORD]
                            [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                           [--no-sapio]
+                           [--no-sapio] [--verify-certificates]
                            root_paths [root_paths ...]
 
 positional arguments:
@@ -111,6 +112,8 @@ options:
   --log-level, -l {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set log level
   --no-sapio            Do not call Sapio API at all
+  --verify-certificates
+                        Enable TLS certificate verification for Sapio API connections
 ```
 
 ## Development
